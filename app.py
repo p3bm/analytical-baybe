@@ -1,6 +1,6 @@
 from baybe import Campaign
 from baybe.objectives import SingleTargetObjective, DesirabilityObjective
-from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter
+from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter, CustomDiscreteParameter
 from baybe.searchspace import SearchSpace
 from baybe.targets import NumericalTarget
 from typing import Dict, List, Tuple, Optional, Union
@@ -80,6 +80,21 @@ def convert_continuous_numerical_variable(
     """
     return NumericalContinuousParameter(name, bounds=bounds_tuple)
 
+def convert_custom_variable(
+    name: str,
+    data: pd.DataFrame,
+) -> CustomDiscreteParameter:
+    """
+    Create a BayBE CustomDiscreteParameter.
+
+    Args:
+        name: Name of the numerical parameter.
+        data: A DataFrame with the labels as the index.
+
+    Returns:
+        A BayBE CustomDiscreteParameter.
+    """
+    return NumericalContinuousParameter(name, data)
 
 def convert_objective_variable(
     name: str,
