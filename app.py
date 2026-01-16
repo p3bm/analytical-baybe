@@ -230,8 +230,9 @@ def create_discrete_numerical_fields(num_numerical_variables):
     for i in range(num_numerical_variables):
         with st.container(border=True, key=f"disc_num_var_{i}"):
             variable_name = st.text_input(f"Variable {i + 1} name:", placeholder = 'E.g. temperature')
+            st.write("""Please enter the start, stop, and interval values that describe the range of desired values. 
+                     The range of values will be shown below.""")
             col1, col2, col3 = st.columns(3)
-            st.write("Please enter the start, stop, and interval values that describe the range of desired values.")
             with col1:
                 start = st.number_input(f"Start of discrete variable {i + 1}", value=20.00, format="%0.2f")
             with col2:
