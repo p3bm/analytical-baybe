@@ -8,6 +8,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 from datetime import datetime
+import numpy as np
 
 def convert_substance_variable(
     sub_dict: Dict[str, str],
@@ -238,9 +239,9 @@ def create_discrete_numerical_fields(num_numerical_variables):
             with col3:
                 step = st.number_input(f"Interval for discrete variable {i + 1}", value=5.00, format="%0.2f")
 
-            values = range(start,stop+step,step)
+            values = np.arange(start,stop+step,step)
             st.write(f"{variable_name}: {values}")
-        variable_dict[variable_name] = range(start,stop+step,step)
+        variable_dict[variable_name] = values
     return variable_dict
 
 def create_continuous_numerical_fields(num_numerical_variables):
