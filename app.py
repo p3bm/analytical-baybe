@@ -253,7 +253,7 @@ def create_continuous_numerical_fields(num_numerical_variables):
 
 def create_pareto_objective(markers):
     targets = []
-    marker_names = markers["names"].values.tolist()
+    marker_names = markers["name"].values.tolist()
     for i in range(0,len(marker_names)):
         name = marker_names[i]
         targets.append(NumericalTarget(name="{name}_FWHM"), minimize=True)
