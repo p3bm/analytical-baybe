@@ -254,6 +254,8 @@ def create_continuous_numerical_fields(num_numerical_variables):
 def create_pareto_objective(markers):
     targets = []
     marker_names = markers["name"].values.tolist()
+    if len(marker_names) == 0:
+        return None
     for i in range(0,len(marker_names)):
         name = marker_names[i]
         targets.append(NumericalTarget(name=f"{name}_FWHM", minimize=True))
@@ -364,19 +366,14 @@ def main():
         
         st.write("Enter markers into the table below.")
         markers = st.data_editor(pd.DataFrame(columns=["name"]), num_rows="dynamic")
-
-        if st.button("Create Pareto objective"):
-            objective = create_pareto_objective(markers)
-            st.success("Pareto objective created.")
-        else:
-            objective = None
+        objective = create_pareto_objective(markers)
 
     st.divider()
     st.header("Create Reaction Space")
 
     if st.button("Generate"):
         if objective is None:
-            st.error("Please create the Pareto objective before continuing!")
+            st.error("Please enter marker names before continuing.")
             st.stop()
         with st.spinner('Processing...'):
             st.session_state.campaign_json = create_campaign(categorical_variables_dict, substance_variables_dict, 
