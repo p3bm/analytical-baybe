@@ -347,12 +347,14 @@ def main():
     with st.container(border=True, key="column_var"):
         st.subheader("RP LC Column Variable")
 
+        tanaka_vals_filename = "encoded_tanaka_vals.csv"
+
         if st.toggle("Include all RP LC columns in database as a variable"):
-            data = pd.read_csv("column_tanaka_values_complete.csv", sep=",", index_col="Column Name")
+            data = pd.read_csv(tanaka_vals_filename, sep=",", index_col="Column Name")
             column_variable_dict = {"Column Type":data}
             st.warning("It is recommended to enter the column dimensions (but not particle size) as separate discrete variables above.")
         elif st.toggle("Include a selection of supported columns as a variable"):
-            data = pd.read_csv("column_tanaka_values_complete.csv", sep=",", index_col="Column Name")
+            data = pd.read_csv(tanaka_vals_filename, sep=",", index_col="Column Name")
             subset = st.multiselect("Column List", data.index.to_list())
             column_variable_dict = {"Column Type":data.loc[subset]}            
                      
