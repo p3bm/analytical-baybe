@@ -250,7 +250,7 @@ def create_pareto_objective(markers):
     marker_names = markers["name"].values.tolist()
     if len(marker_names) == 0:
         return None
-    targets = [NumericalTarget(name=f"resolution_{num+1}", minimize=False) for num in range(len(marker_names))]
+    targets = [NumericalTarget(name=f"resolution_{num+1}", minimize=False) for num in range(len(marker_names)-1)]
     for i in range(0,len(marker_names)):
         name = marker_names[i]
         targets.append(NumericalTarget(name=f"{name}_FWHM", minimize=True))
