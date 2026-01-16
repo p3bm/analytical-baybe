@@ -3,15 +3,11 @@ from baybe.objectives import ParetoObjective
 from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter, CustomDiscreteParameter
 from baybe.searchspace import SearchSpace
 from baybe.targets import NumericalTarget
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional
 import streamlit as st
 import pandas as pd
-import json
 from io import StringIO
 from datetime import datetime
-import matplotlib.pyplot as plt
-import shap
-from streamlit_shap import st_shap
 
 def convert_substance_variable(
     sub_dict: Dict[str, str],
@@ -116,7 +112,6 @@ def convert_params(
         A tuple of (parameters, objectives).
     """
     parameters: List = []
-    objectives: List[NumericalTarget] = []
 
     for name, values in cat_var_dict.items():
         parameters.append(convert_categorical_variable(values, name))
@@ -207,7 +202,7 @@ def create_categorical_fields(num_variables):
     variable_dict = {}
     for i in range(num_variables):
         with st.container(border=True, key=f"cat_var_{i}"):
-            variable_name = st.text_input(f"Variable {i + 1} title:", placeholder = 'E.g. base treament')
+            variable_name = st.text_input(f"Variable {i + 1} title:", placeholder = 'E.g. base treatment')
             variable_values = st.text_input(f"Variable {i + 1} categories (comma-separated):", placeholder= "ground, unground")
 
         if variable_values:    
