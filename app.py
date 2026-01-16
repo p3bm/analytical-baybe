@@ -363,7 +363,7 @@ def main():
         st.subheader("Objectives")
         
         st.write("Enter markers into the table below.")
-        markers = st.data_editor(pd.DataFrame(["name"]), num_rows="dynamic")
+        markers = st.data_editor(pd.DataFrame(columns=["name"]), num_rows="dynamic")
         
         objective = None
 
@@ -379,7 +379,7 @@ def main():
             st.stop()
         with st.spinner('Processing...'):
             st.session_state.campaign_json = create_campaign(categorical_variables_dict, substance_variables_dict, 
-                                            disc_numerical_variables_dict, cont_numerical_variables_dict, 
+                                            disc_numerical_variables_dict, cont_numerical_variables_dict, column_variable_dict,
                                             objective)
 
             st.session_state.campaign_generated = True
