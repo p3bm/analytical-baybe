@@ -254,10 +254,11 @@ def create_continuous_numerical_fields(num_numerical_variables):
 def create_pareto_objective(markers):
     targets = []
     marker_names = markers["name"].values.tolist()
+    st.write(marker_names)
     for i in range(0,len(marker_names)):
         name = marker_names[i]
-        targets.append(NumericalTarget(name="{name}_FWHM"), minimize=True)
-        targets.append(NumericalTarget(name="{name}_tailing"), minimize=True)
+        targets.append(NumericalTarget(name="{name}_FWHM", minimize=True))
+        targets.append(NumericalTarget(name="{name}_tailing", minimize=True))
         for j in range(i+1,len(marker_names)):
             name_2 = marker_names[j]
             if name != name_2:
@@ -369,6 +370,7 @@ def main():
 
         if st.button("Create Pareto objective"):
             objective = create_pareto_objective(markers)
+            st.success("Pareto objective created.")
 
     st.divider()
     st.header("Create Reaction Space")
