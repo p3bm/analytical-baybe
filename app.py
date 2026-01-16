@@ -1,5 +1,5 @@
 from baybe import Campaign
-from baybe.objectives import SingleTargetObjective, DesirabilityObjective
+from baybe.objectives import ParetoObjective
 from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter, CustomDiscreteParameter
 from baybe.searchspace import SearchSpace
 from baybe.targets import NumericalTarget
@@ -29,7 +29,6 @@ def convert_substance_variable(
     """
     return SubstanceParameter(name, data=sub_dict, encoding="MORDRED")
 
-
 def convert_categorical_variable(
     cat_list: List[str],
     name: str,
@@ -45,7 +44,6 @@ def convert_categorical_variable(
         A BayBE CategoricalParameter.
     """
     return CategoricalParameter(name, values=cat_list)
-
 
 def convert_discrete_numerical_variable(
     num_list: List[float],
@@ -96,43 +94,12 @@ def convert_custom_variable(
     """
     return NumericalContinuousParameter(name, data)
 
-def convert_objective_variable(
-    name: str,
-    mode: str,
-    bounds: List[float],
-) -> NumericalTarget:
-    """
-    Create a normalized ramp objective target.
-
-    Args:
-        name: Objective name (must match measurement column).
-        mode: Optimization mode ("min" or "max").
-        bounds: Lower and upper cutoff values for normalization.
-
-    Returns:
-        A BayBE NumericalTarget.
-
-    Raises:
-        ValueError: If bounds are invalid.
-    """
-    descending = mode.lower() == "min"
-
-    if bounds[0] >= bounds[1]:
-        raise ValueError(f"Objective '{name}' has invalid bounds")
-
-    return NumericalTarget.normalized_ramp(
-        name,
-        cutoffs=(bounds[0], bounds[1]),
-        descending=descending,
-    )
-
-
 def convert_params(
     cat_var_dict: Dict[str, List[str]],
     sub_var_dict: Dict[str, Dict[str, str]],
     num_disc_var_dict: Dict[str, List[float]],
     num_cont_var_dict: Dict[str, Tuple[float, float]],
-    obj_dict: Dict[str, Dict[str, Union[str, List[float]]]],
+    col_var_dict: Dict[str, pd.DataFrame],
 ) -> Tuple[List, List[NumericalTarget]]:
     """
     Convert user-defined parameter and objective dictionaries into
@@ -163,25 +130,18 @@ def convert_params(
     for name, bounds in num_cont_var_dict.items():
         parameters.append(convert_continuous_numerical_variable(bounds, name))
 
-    for name, values in obj_dict.items():
-        objectives.append(
-            convert_objective_variable(
-                name=name,
-                mode=values["mode"],
-                bounds=values["bounds"],
-            )
-        )
+    for name, data in col_var_dict.items():
+        parameters.append(convert_custom_variable(name, data))
 
-    return parameters, objectives
-
+    return parameters
 
 def create_campaign(
     categorical_variables_dict: Dict[str, List[str]],
     substance_variables_dict: Dict[str, Dict[str, str]],
     disc_numerical_variables_dict: Dict[str, List[float]],
     cont_numerical_variables_dict: Dict[str, Tuple[float, float]],
-    objective_dict: Dict[str, Dict[str, Union[str, List[float]]]],
-    weights: Optional[List[int]],
+    column_variable_dict,
+    objective,
 ) -> str:
     """
     Create a BayBE campaign and serialize it to JSON.
@@ -191,30 +151,24 @@ def create_campaign(
         substance_variables_dict: Substance variable definitions.
         disc_numerical_variables_dict: Discrete numerical variable definitions.
         cont_numerical_variables_dict: Continuous numerical variable definitions.
+        column_variable_dict
         objective_dict: Objective definitions.
-        weights: Objective weights for multi-objective optimization.
 
     Returns:
         JSON-serialized BayBE campaign.
     """
-    parameters, objectives = convert_params(
+    parameters = convert_params(
         categorical_variables_dict,
         substance_variables_dict,
         disc_numerical_variables_dict,
         cont_numerical_variables_dict,
-        objective_dict,
+        column_variable_dict,
     )
 
     searchspace = SearchSpace.from_product(parameters=parameters)
 
-    if len(objectives) > 1:
-        objective = DesirabilityObjective(targets=objectives, weights=weights)
-    else:
-        objective = SingleTargetObjective(target=objectives[0])
-
     campaign = Campaign(searchspace=searchspace, objective=objective)
     return campaign.to_json()
-
 
 def recommend_reactions(
     campaign: str,
@@ -248,7 +202,6 @@ def recommend_reactions(
         recommendations[target] = None
 
     return recommendations, campaign_recreate.to_json()
-
 
 def create_categorical_fields(num_variables):
     variable_dict = {}
@@ -295,19 +248,18 @@ def create_continuous_numerical_fields(num_numerical_variables):
             variable_dict[variable_name] = (variable_lower_bound, variable_upper_bound)
     return variable_dict
 
-def create_objective_fields(num_objective_variables):
-    objective_dict = {}
-    for i in range(num_objective_variables):
-        values = {}
-        with st.container(border=True, key=f"obj_var_{i}"):
-            variable_name = st.text_input(f"Objective {i + 1} name:", placeholder='Yield')
-            variable_mode = st.selectbox(f"Objective {i + 1} mode:", options=["max", "min"])
-            variable_lower_bound = st.number_input(f"Lower bound of objective {i + 1}", value=0)
-            variable_upper_bound = st.number_input(f"Upper bound of objective {i + 1}", value=100)
-        values["mode"] = variable_mode
-        values["bounds"] = [variable_lower_bound,variable_upper_bound]
-        objective_dict[variable_name] = values
-    return objective_dict
+def create_pareto_objective(markers):
+    targets = []
+    marker_names = markers["names"].values.tolist()
+    for i in range(0,len(marker_names)):
+        name = marker_names[i]
+        targets.append(NumericalTarget(name="{name}_FWHM"), minimize=True)
+        targets.append(NumericalTarget(name="{name}_tailing"), minimize=True)
+        for j in range(i+1,len(marker_names)):
+            name_2 = marker_names[j]
+            if name != name_2:
+                targets.append(NumericalTarget(name="{name}_{name_2}_resolution"))
+    return ParetoObjective(targets=targets)
 
 def upload_file(key):
     uploaded_files = st.file_uploader("Choose a " + key + " file", key = key)
@@ -338,87 +290,14 @@ def get_current_round(campaign):
     except KeyError:
         return 0
 
-def plot_learning_curve(campaign,objective_dict):
-    campaign_recreate = Campaign.from_json(campaign)
-    info = campaign_recreate.measurements
-    try:
-        num_rounds = info["BatchNr"].max()
-    except KeyError:
-        st.warning("Insufficient rounds performed to plot optimisation curve")
-        return None
-    if num_rounds > 1:
-        fig, ax = plt.subplots(figsize=(8, 5))
-        for obj in objective_dict:
-            values = objective_dict[obj]
-            if values["mode"].lower() == 'max':
-                data = info.groupby('BatchNr')[obj].max().reset_index()
-            else:
-                data = info.groupby('BatchNr')[obj].min().reset_index()
-            ax.plot(data["BatchNr"], data[obj], marker='o', label=obj)
-        ax.set_title('Best Objective Outcome(s) vs. Round Number')
-        ax.set_xlabel('Round Number')
-        ax.set_xticks(data["BatchNr"])
-        ax.set_ylabel('Objective Variable Value')
-        ax.legend()
-        st.pyplot(fig, clear_figure=True)
-        return None
-    st.warning("Insufficient rounds performed to plot optimisation curve")
-    return None
-
-def show_SHAP(campaign):
-    campaign_recreate = Campaign.from_json(campaign)
-    data = campaign_recreate.measurements[[p.name for p in campaign_recreate.parameters]]
-    model = lambda x: campaign_recreate.get_surrogate().posterior(x).mean
-
-    explainer = shap.Explainer(model, data)
-    shap_values = explainer(data)
-    st_shap(shap.plots.bar(shap_values), width=600)
-
 def main():
     
     st.image('./catsci-logo.svg', width=200)  # Adjust width as needed
-    st.title("Bayesian Reaction Optimizer")
+    st.title("Bayesian Optimizer for Method Development")
 
     with st.expander("User Guide"):
         st.markdown("""
-        ## Overview
-        
-        The Bayesian Reaction Optimizer is an interactive tool for designing and optimizing chemical reactions using Bayesian optimization powered by BayBE.
-        
-        Instead of exploring reaction conditions by trial and error, the tool learns from previous experiments and recommends the most informative next reactions to run. It supports categorical variables (e.g. solvent, catalyst), numerical variables (e.g. temperature, equivalents), and structure-aware substance variables (via molecular descriptors). One or more experimental objectives—such as yield or selectivity—can be optimized simultaneously.
-        
-        The workflow is fully iterative: define your reaction space, run suggested experiments, upload the results, and generate improved recommendations in subsequent rounds.
-        
-        ---
-        ## How to Use the Tool
-        ### 1. Define the Reaction Space
-        - Specify reaction parameters:
-          - **Categorical variables** (e.g. base treatment, atmosphere)
-          - **Substance variables** (e.g. solvent or ligand, defined by SMILES)
-          - **Numerical variables** (either discrete *or* continuous)
-        - Define one or more **objectives** (e.g. yield, conversion), including:
-          - Optimization mode (`max` or `min`)
-          - Expected lower and upper bounds
-        > **Note:** Discrete and continuous numerical variables cannot be mixed in the same campaign.
-        ---
-        ### 2. Generate a Campaign
-        - Click *Generate* to create the Bayesian optimization campaign.
-        - Download the generated campaign JSON file — this represents the full reaction design space and optimization state.
-        ---
-        ### 3. Get Reaction Recommendations
-        - Upload the latest campaign JSON.
-        - (Optional) Upload a CSV containing results from previously run reactions.
-        - Specify how many new reactions you want to run.
-        - Click *Get recommendations* to receive a ranked list of suggested experiments.
-        ---
-        ### 4. Run Experiments and Iterate
-        - Perform the recommended reactions in the lab.
-        - Record results (including objective values and batch number).
-        - Upload the updated results in the next round to refine future recommendations.
-        ---
-        ### 5. Analyze Progress (Optional)
-        - Visualize learning curves showing objective improvement across rounds.
-        - View feature importance (SHAP analysis) to understand which parameters most influence the model.
+        Ask Patrick
         """)
 
     # Store the initial value of widgets in session state
@@ -465,20 +344,24 @@ def main():
         
         cont_numerical_variables_dict = create_continuous_numerical_fields(num_cont_numerical_variables)
 
+    with st.container(border=True, key="column_var"):
+        st.subheader("RP LC Column Variable")
+
+        if st.toggle("Include all RP LC columns in database as a variable"):
+            data = pd.read_csv("column_tanaka_values_complete.csv", sep=",", index_col="Column Name")
+            column_variable_dict = {"Column Type":data}
+            st.warning("It is recommended to enter the column dimensions (but not particle size) as separate discrete variables above.")
+        elif st.toggle("Include a selection of supported columns as a variable"):
+            data = pd.read_csv("column_tanaka_values_complete.csv", sep=",", index_col="Column Name")
+            subset = st.multiselect("Column List", data.index.to_list())
+            column_variable_dict = {"Column Type":data.loc[subset]}            
+                     
     with st.container(border=True, key="objs"):
         st.subheader("Objectives")
         
-        num_objectives = st.number_input("How many **objective** variables do you have", min_value= 1, value= 1, key = 'obj')
-        objective_dict = create_objective_fields(num_objectives)
-    
-        if num_objectives > 1:
-            objective_weights = st.text_input("Target Objective weights (comma-separated and should sum to 100):", placeholder= "50,50")
-            weights = [int(value.strip()) for value in objective_weights.split(',')]
-        
-            if num_objectives != len(weights):
-                st.warning("Please make sure there are the same number of objectives as objective weights.")
-        else:
-            weights = None
+        st.write("Enter markers into the table below.")
+        markers = st.data_editor(pd.DataFrame(["name"]), num_rows="dynamic")
+        objective = create_pareto_objective(markers)
 
     st.divider()
     st.header("Create Reaction Space")
@@ -487,7 +370,7 @@ def main():
         with st.spinner('Processing...'):
             st.session_state.campaign_json = create_campaign(categorical_variables_dict, substance_variables_dict, 
                                             disc_numerical_variables_dict, cont_numerical_variables_dict, 
-                                            objective_dict, weights)
+                                            objective)
 
             st.session_state.campaign_generated = True
 
@@ -524,14 +407,6 @@ def main():
                            st.session_state.reactions.to_csv(index=False, lineterminator='\r\n').encode('utf-8'),
                            file_name=reactions_filename,
                            mime='text/csv')
-
-        try:
-            plot_learning_curve(st.session_state.new_campaign, objective_dict)
-        except ValueError:
-            None
-
-        if st.toggle("Show SHAP values"):
-            show_SHAP(st.session_state.new_campaign)
             
 if __name__ == "__main__":
     main()
