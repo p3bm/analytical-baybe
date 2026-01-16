@@ -209,9 +209,10 @@ def create_categorical_fields(num_variables):
         with st.container(border=True, key=f"cat_var_{i}"):
             variable_name = st.text_input(f"Variable {i + 1} title:", placeholder = 'E.g. base treament')
             variable_values = st.text_input(f"Variable {i + 1} categories (comma-separated):", placeholder= "ground, unground")
-            
-        values = [value.strip() for value in variable_values.split(',')]
-        variable_dict[variable_name] = values
+
+        if variable_values:    
+            values = [value.strip() for value in variable_values.split(',')]
+            variable_dict[variable_name] = values
     return variable_dict
 
 def create_substance_fields(num_variables):
@@ -222,9 +223,10 @@ def create_substance_fields(num_variables):
             variable_values = st.text_input(f"Variable {i + 1} names (comma-separated):", placeholder= "methanol, ethanol, etc.")
             variable_smile_values = st.text_input(f"Variable {i + 1} SMILE strings (comma-separated):", placeholder= "CO, CCO, etc.")
 
-        keys = [value.strip() for value in variable_values.split(',')]
-        values = [value.strip() for value in variable_smile_values.split(',')]
-        variable_dict[variable_name] = dict(zip(keys, values))
+        if variable_values and variable_smile_values:
+            keys = [value.strip() for value in variable_values.split(',')]
+            values = [value.strip() for value in variable_smile_values.split(',')]
+            variable_dict[variable_name] = dict(zip(keys, values))
     return variable_dict
 
 def create_discrete_numerical_fields(num_numerical_variables):
@@ -233,9 +235,10 @@ def create_discrete_numerical_fields(num_numerical_variables):
         with st.container(border=True, key=f"disc_num_var_{i}"):
             variable_name = st.text_input(f"Variable {i + 1} name:", placeholder = 'E.g. temperature')
             variable_values = st.text_input(f"Variable {i + 1} values (comma-separated):", placeholder= "40,60,80")
-            
-        values = [float(value.strip()) for value in variable_values.split(',')]
-        variable_dict[variable_name] = values
+        
+        if variable_values:
+            values = [float(value.strip()) for value in variable_values.split(',')]
+            variable_dict[variable_name] = values
     return variable_dict
 
 def create_continuous_numerical_fields(num_numerical_variables):
