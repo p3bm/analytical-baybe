@@ -92,7 +92,7 @@ def convert_custom_variable(
     Returns:
         A BayBE CustomDiscreteParameter.
     """
-    return NumericalContinuousParameter(name, data)
+    return CustomDiscreteParameter(name, data)
 
 def convert_params(
     cat_var_dict: Dict[str, List[str]],
