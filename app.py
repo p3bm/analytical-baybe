@@ -364,12 +364,19 @@ def main():
         
         st.write("Enter markers into the table below.")
         markers = st.data_editor(pd.DataFrame(["name"]), num_rows="dynamic")
-        objective = create_pareto_objective(markers)
+        
+        objective = None
+
+        if st.button("Create Pareto objective"):
+            objective = create_pareto_objective(markers)
 
     st.divider()
     st.header("Create Reaction Space")
 
     if st.button("Generate"):
+        if objective is None:
+            st.error("Please create the Pareto objective before continuing!")
+            st.stop()
         with st.spinner('Processing...'):
             st.session_state.campaign_json = create_campaign(categorical_variables_dict, substance_variables_dict, 
                                             disc_numerical_variables_dict, cont_numerical_variables_dict, 
