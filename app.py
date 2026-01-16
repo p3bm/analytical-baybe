@@ -364,12 +364,12 @@ def main():
         
         st.write("Enter markers into the table below.")
         markers = st.data_editor(pd.DataFrame(columns=["name"]), num_rows="dynamic")
-        
-        objective = None
 
         if st.button("Create Pareto objective"):
             objective = create_pareto_objective(markers)
             st.success("Pareto objective created.")
+        else:
+            objective = None
 
     st.divider()
     st.header("Create Reaction Space")
