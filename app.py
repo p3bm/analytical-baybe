@@ -254,15 +254,14 @@ def create_continuous_numerical_fields(num_numerical_variables):
 def create_pareto_objective(markers):
     targets = []
     marker_names = markers["name"].values.tolist()
-    st.write(marker_names)
     for i in range(0,len(marker_names)):
         name = marker_names[i]
-        targets.append(NumericalTarget(name="{name}_FWHM", minimize=True))
-        targets.append(NumericalTarget(name="{name}_tailing", minimize=True))
+        targets.append(NumericalTarget(name=f"{name}_FWHM", minimize=True))
+        targets.append(NumericalTarget(name=f"{name}_tailing", minimize=True))
         for j in range(i+1,len(marker_names)):
             name_2 = marker_names[j]
             if name != name_2:
-                targets.append(NumericalTarget(name="{name}_{name_2}_resolution"))
+                targets.append(NumericalTarget(name=f"{name}_{name_2}_resolution"))
     return ParetoObjective(targets=targets)
 
 def upload_file(key):
