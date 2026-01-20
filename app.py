@@ -256,7 +256,7 @@ def create_continuous_numerical_fields(num_numerical_variables):
     return variable_dict
 
 def create_objective(num_markers):
-    if num_markers == 1:
+    if num_markers-1 == 1:
         return SingleTargetObjective(NumericalTarget.normalized_sigmoid(name=f"resolution", anchors=[(2.4, 0.05), (3, 0.95)]))
     else:
         return DesirabilityObjective(
