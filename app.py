@@ -1,5 +1,5 @@
 from baybe import Campaign
-from baybe.objectives import DesirabilityObjective
+from baybe.objectives import DesirabilityObjective, SingleTargetObjective
 from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter, CustomDiscreteParameter
 from baybe.searchspace import SearchSpace
 from baybe.targets import NumericalTarget
@@ -256,10 +256,13 @@ def create_continuous_numerical_fields(num_numerical_variables):
     return variable_dict
 
 def create_objective(num_markers):
-    return DesirabilityObjective(
-        targets=[NumericalTarget.normalized_sigmoid(name=f"resolution_{i+1}", anchors=[(2.4, 0.05), (3, 0.95)]) for i in range(num_markers-1)],
-        weights=[1]*(num_markers-1)
-        )
+    if num_markers == 1:
+        return SingleTargetObjective(NumericalTarget.normalized_sigmoid(name=f"resolution", anchors=[(2.4, 0.05), (3, 0.95)]))
+    else:
+        return DesirabilityObjective(
+            targets=[NumericalTarget.normalized_sigmoid(name=f"resolution_{i+1}", anchors=[(2.4, 0.05), (3, 0.95)]) for i in range(num_markers-1)],
+            weights=[1]*(num_markers-1)
+            )
 
 def upload_file(key):
     uploaded_files = st.file_uploader("Choose a " + key + " file", key = key)
