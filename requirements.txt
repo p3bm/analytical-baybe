@@ -1,7 +1,9 @@
 pandas
-baybe
 streamlit
 streamlit-shap
 shap
 scikit-fingerprints
 matplotlib
+attrs==23.2.0
+cattrs==23.1.2
+baybe==0.14.2
