@@ -241,7 +241,7 @@ def create_discrete_numerical_fields(num_numerical_variables):
                 step = st.number_input(f"Interval for discrete variable {i + 1}", value=5.00, format="%0.2f")
 
             values = np.arange(start,stop+step,step)
-            st.write(f"{variable_name}: {values}")
+            st.write(f"Variable: {variable_name}, Values: {values}.")
         variable_dict[variable_name] = values
     return variable_dict
 
@@ -361,7 +361,9 @@ def main():
         elif st.toggle("Include a selection of supported columns as a variable"):
             data = pd.read_csv(tanaka_vals_filename, sep=",", index_col="Column Name")
             subset = st.multiselect("Column List", data.index.to_list())
-            column_variable_dict = {"Column Type":data.loc[subset]}            
+            data = data.loc[subset]
+            data = data.loc[:, ~data.eq(data.iloc[0]).all()]
+            column_variable_dict = {"Column Type":data}          
                      
     with st.container(border=True, key="objs"):
         st.subheader("Objectives")
