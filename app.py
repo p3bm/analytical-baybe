@@ -1,5 +1,5 @@
 from baybe import Campaign
-from baybe.objectives import ParetoObjective
+from baybe.objectives import DesirabilityObjective
 from baybe.parameters import NumericalDiscreteParameter, NumericalContinuousParameter, CategoricalParameter, SubstanceParameter, CustomDiscreteParameter
 from baybe.searchspace import SearchSpace
 from baybe.targets import NumericalTarget
@@ -255,16 +255,11 @@ def create_continuous_numerical_fields(num_numerical_variables):
             variable_dict[variable_name] = (variable_lower_bound, variable_upper_bound)
     return variable_dict
 
-def create_pareto_objective(markers):
-    marker_names = markers["name"].values.tolist()
-    if len(marker_names) == 0:
-        return None
-    targets = [NumericalTarget(name=f"resolution_{num+1}", minimize=False) for num in range(len(marker_names)-1)]
-    for i in range(0,len(marker_names)):
-        name = marker_names[i]
-        targets.append(NumericalTarget(name=f"{name}_FWHM", minimize=True))
-        targets.append(NumericalTarget(name=f"{name}_tailing", minimize=True))
-    return ParetoObjective(targets=targets)
+def create_objective(num_markers):
+    return DesirabilityObjective(
+        targets=[NumericalTarget.normalized_sigmoid(name=f"resolution_{i+1}", anchors=[(2.4, 0.05), (3, 0.95)]) for i in range(num_markers-1)],
+        weights=[1]*(num_markers-1)
+        )
 
 def upload_file(key):
     uploaded_files = st.file_uploader("Choose a " + key + " file", key = key)
@@ -367,10 +362,11 @@ def main():
                      
     with st.container(border=True, key="objs"):
         st.subheader("Objectives")
-        
-        st.write("Enter markers into the table below.")
-        markers = st.data_editor(pd.DataFrame(columns=["name"]), num_rows="dynamic")
-        objective = create_pareto_objective(markers)
+        st.write("""Currently generates n-1 numerical targets that correspond to the resolution factors between n markers. 
+                 Each target is normalised by a sigmoid function that effectively sets a threshold resolution of 2.5. 
+                 These are combined into a single desirability objective to be optimised.""")
+        num_markers = st.number_input("Select the number of markers to separate.", min_value=2, max_value=None, value=2)
+        objective = create_objective(num_markers)
 
     st.divider()
     st.header("Create Reaction Space")
