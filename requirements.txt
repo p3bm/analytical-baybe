@@ -1,7 +1,8 @@
 pandas
-streamlit
+streamlit==1.21
 streamlit-shap
 shap
 scikit-fingerprints
 matplotlib
 baybe
+altair<5
