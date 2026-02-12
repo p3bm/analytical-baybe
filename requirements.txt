@@ -1,5 +1,5 @@
 pandas
-streamlit
+streamlit>1.19
 streamlit-shap
 shap
 scikit-fingerprints
